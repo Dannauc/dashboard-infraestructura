@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard TIC · Universidad Católica Luis Amigó</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --azul:    #007B99;
+    --azul-d:  #005f75;
+    --azul-l:  #b3dde7;
+    --azul-bg: #e8f4f8;
+    --naranja: #F39200;
+    --naranja-l:#fcd9a0;
+    --gris:    #848585;
+    --gris-l:  #d6d6d6;
+    --verde:   #27ae60;
+    --rojo:    #c0392b;
+    --bg:      #f0f5f8;
+    --card:    #ffffff;
+    --text:    #1a2b35;
+    --text-2:  #4a6070;
+    --radius:  12px;
+    --shadow:  0 2px 16px rgba(0,123,153,.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, var(--azul-d) 0%, var(--azul) 60%, #009bb8 100%);
+    color: #fff;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 72px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,95,117,.35);
+  }
+  .header-left { display: flex; align-items: center; gap: 1rem; }
+  .logo-mark {
+    width: 44px; height: 44px;
+    background: rgba(255,255,255,.15);
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 1.4rem; font-weight: 700; letter-spacing: -1px;
+  }
+  header h1 { font-size: 1rem; font-weight: 600; line-height: 1.25; }
+  header h1 span { display: block; font-size: .75rem; font-weight: 400; opacity: .75; }
+  .badge {
+    background: var(--naranja);
+    color: #fff;
+    font-size: .7rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    letter-spacing: .04em;
+  }
+  .header-meta { font-size: .75rem; opacity: .7; text-align: right; font-family: 'DM Mono', monospace; }
+
+  /* ── NAV TABS ── */
+  nav {
+    background: var(--card);
+    border-bottom: 1px solid var(--gris-l);
+    padding: 0 2rem;
+    display: flex; gap: 0;
+  }
+  nav button {
+    background: none; border: none; cursor: pointer;
+    padding: .85rem 1.25rem;
+    font-family: inherit; font-size: .85rem; font-weight: 500;
+    color: var(--text-2);
+    border-bottom: 3px solid transparent;
+    transition: all .2s;
+  }
+  nav button.active {
+    color: var(--azul);
+    border-bottom-color: var(--azul);
+  }
+  nav button:hover:not(.active) { color: var(--text); background: var(--bg); }
+
+  /* ── MAIN ── */
+  main { padding: 1.75rem 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  /* ── SECTION ── */
+  .tab-section { display: none; }
+  .tab-section.active { display: block; }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+  .kpi-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow);
+    border-top: 4px solid var(--azul);
+    transition: transform .2s, box-shadow .2s;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card::after {
+    content: '';
+    position: absolute; right: -20px; top: -20px;
+    width: 80px; height: 80px;
+    background: var(--azul-bg);
+    border-radius: 50%;
+  }
+  .kpi-card.naranja { border-top-color: var(--naranja); }
+  .kpi-card.naranja::after { background: #fff8ed; }
+  .kpi-card.verde   { border-top-color: var(--verde);  }
+  .kpi-card.verde::after   { background: #eafaf1; }
+  .kpi-card.rojo    { border-top-color: var(--rojo);   }
+  .kpi-card.rojo::after    { background: #fdf0ef; }
+  .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 6px 24px rgba(0,123,153,.15); }
+  .kpi-label {
+    font-size: .72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .07em;
+    color: var(--gris); margin-bottom: .4rem;
+  }
+  .kpi-value {
+    font-size: 2rem; font-weight: 700;
+    color: var(--text); line-height: 1;
+    font-family: 'DM Mono', monospace;
+  }
+  .kpi-sub {
+    font-size: .75rem; color: var(--text-2);
+    margin-top: .35rem;
+  }
+
+  /* ── CHART GRID ── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .chart-grid.three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .chart-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.25rem 1.5rem;
+  }
+  .chart-card.wide { grid-column: 1 / -1; }
+  .chart-title {
+    font-size: .85rem; font-weight: 600;
+    color: var(--azul); margin-bottom: 1rem;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .chart-title .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--naranja); flex-shrink: 0;
+  }
+  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap.tall { height: 300px; }
+
+  /* ── SEMÁFORO ── */
+  .semaforo-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+  }
+  .semaforo-item {
+    border-radius: 10px; padding: 1rem;
+    text-align: center;
+  }
+  .semaforo-item.verde  { background: #eafaf1; border: 2px solid var(--verde); }
+  .semaforo-item.amari  { background: #fff8ed; border: 2px solid var(--naranja); }
+  .semaforo-item.rojo   { background: #fdf0ef; border: 2px solid var(--rojo); }
+  .semaforo-num {
+    font-size: 2.5rem; font-weight: 700;
+    font-family: 'DM Mono', monospace;
+  }
+  .semaforo-item.verde  .semaforo-num { color: var(--verde); }
+  .semaforo-item.amari  .semaforo-num { color: var(--naranja); }
+  .semaforo-item.rojo   .semaforo-num { color: var(--rojo); }
+  .semaforo-lbl { font-size: .8rem; font-weight: 600; color: var(--text-2); margin-top: .25rem; }
+
+  /* ── TABLA INDICADORES ── */
+  .tabla-wrap { overflow-x: auto; margin-top: .5rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  th {
+    background: var(--azul); color: #fff;
+    padding: .6rem .9rem; text-align: left;
+    font-weight: 600; font-size: .72rem; letter-spacing: .05em;
+  }
+  td { padding: .55rem .9rem; border-bottom: 1px solid var(--bg); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--azul-bg); }
+  .pill {
+    display: inline-block;
+    padding: 2px 10px; border-radius: 99px;
+    font-size: .7rem; font-weight: 600;
+  }
+  .pill.verde   { background: #eafaf1; color: #1a7a3a; }
+  .pill.amarillo { background: #fff3cd; color: #856404; }
+  .pill.rojo    { background: #fdf0ef; color: #922b21; }
+
+  /* ── BARRA PROGRESO ── */
+  .progress-bar-wrap { margin-top: .5rem; }
+  .progress-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
+  .progress-label { font-size: .78rem; color: var(--text-2); width: 170px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .progress-track { flex: 1; height: 10px; background: var(--gris-l); border-radius: 99px; overflow: hidden; }
+  .progress-fill  { height: 100%; background: var(--azul); border-radius: 99px; transition: width .8s ease; }
+  .progress-num   { font-size: .75rem; font-family: 'DM Mono', monospace; color: var(--text); width: 35px; text-align: right; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center; padding: 1.5rem;
+    font-size: .72rem; color: var(--gris);
+    border-top: 1px solid var(--gris-l);
+    background: var(--card);
+  }
+
+  /* ── PERIODO BADGE ── */
+  .periodo { font-size: .75rem; color: var(--text-2); margin-bottom: 1.25rem; font-family: 'DM Mono', monospace; }
+  .periodo span { background: var(--azul-bg); color: var(--azul); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+
+  @media(max-width: 900px) {
+    .chart-grid.three { grid-template-columns: 1fr; }
+    .chart-grid { grid-template-columns: 1fr; }
+    main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-mark">UC</div>
+    <div>
+      <h1>Dashboard Infraestructura TIC<span>Universidad Católica Luis Amigó · ISE009 Big Data</span></h1>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <span class="badge">v2 · 2025–2026</span>
+    <div class="header-meta">968 tickets · 223 actividades<br>28 indicadores · 187 licencias</div>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('tickets',this)">🎫 Tickets de Soporte</button>
+  <button onclick="showTab('indicadores',this)">📊 Indicadores</button>
+  <button onclick="showTab('actividades',this)">🛠 Actividades</button>
+  <button onclick="showTab('software',this)">💿 Licencias Software</button>
+</nav>
+
+<main>
+
+<!-- ═══════════════ TAB 1: TICKETS ═══════════════ -->
+<section class="tab-section active" id="tab-tickets">
+  <p class="periodo">Período analizado: <span>03/06/2025 → 30/12/2025</span></p>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Tickets</div>
+      <div class="kpi-value">968</div>
+      <div class="kpi-sub">registros únicos procesados</div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-label">Tickets Cerrados</div>
+      <div class="kpi-value">914</div>
+      <div class="kpi-sub">94.4% del total</div>
+    </div>
+    <div class="kpi-card naranja">
+      <div class="kpi-label">Tipo más frecuente</div>
+      <div class="kpi-value" style="font-size:1.1rem;line-height:1.3">Correo Institucional</div>
+      <div class="kpi-sub">579 tickets (59.8%)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Duplicados eliminados</div>
+      <div class="kpi-value">3</div>
+      <div class="kpi-sub">de 971 registros originales</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Distribución por Estado</div>
+      <div class="chart-wrap"><canvas id="chartEstado"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Distribución por Tipo</div>
+      <div class="chart-wrap"><canvas id="chartTipo"></canvas></div>
+    </div>
+    <div class="chart-card wide">
+      <div class="chart-title"><span class="dot"></span>Tendencia Mensual de Tickets</div>
+      <div class="chart-wrap tall"><canvas id="chartMensual"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid" style="grid-template-columns:1fr 1fr">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Tickets por Día de la Semana</div>
+      <div class="chart-wrap"><canvas id="chartDia"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Tipos de Ticket – ranking</div>
+      <div class="progress-bar-wrap" id="tipoRanking"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ TAB 2: INDICADORES ═══════════════ -->
+<section class="tab-section" id="tab-indicadores">
+  <div class="kpi-grid">
+    <div class="kpi-card verde">
+      <div class="kpi-label">Indicadores en Verde</div>
+      <div class="kpi-value">23</div>
+      <div class="kpi-sub">≥ 80% de cumplimiento</div>
+    </div>
+    <div class="kpi-card naranja">
+      <div class="kpi-label">En Amarillo</div>
+      <div class="kpi-value">1</div>
+      <div class="kpi-sub">70–79% de cumplimiento</div>
+    </div>
+    <div class="kpi-card rojo">
+      <div class="kpi-label">En Rojo</div>
+      <div class="kpi-value">4</div>
+      <div class="kpi-sub">< 70% · requieren atención</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">% Cumplimiento Meta</div>
+      <div class="kpi-value">82.1%</div>
+      <div class="kpi-sub">23 de 28 indicadores</div>
+    </div>
+  </div>
+
+  <div class="chart-grid" style="grid-template-columns:1fr 2fr">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Semáforo de Indicadores</div>
+      <div class="semaforo-grid" style="margin-top:.5rem">
+        <div class="semaforo-item verde">
+          <div class="semaforo-num">23</div>
+          <div class="semaforo-lbl">🟢 Verde</div>
+        </div>
+        <div class="semaforo-item amari">
+          <div class="semaforo-num">1</div>
+          <div class="semaforo-lbl">🟡 Amarillo</div>
+        </div>
+        <div class="semaforo-item rojo">
+          <div class="semaforo-num">4</div>
+          <div class="semaforo-lbl">🔴 Rojo</div>
+        </div>
+      </div>
+      <div style="margin-top:1.5rem">
+        <div class="chart-wrap" style="height:180px"><canvas id="chartSemaforo"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Resultado por Indicador (% promedio)</div>
+      <div class="chart-wrap tall"><canvas id="chartIndicadores"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-top:1.25rem">
+    <div class="chart-title"><span class="dot"></span>Tabla de Indicadores de Gestión</div>
+    <div class="tabla-wrap">
+      <table id="tablaIndicadores">
+        <thead>
+          <tr><th>Código</th><th>Indicador</th><th>Resultado</th><th>Meta</th><th>Semáforo</th><th>Cumple</th></tr>
+        </thead>
+        <tbody id="tbodyInd"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ TAB 3: ACTIVIDADES ═══════════════ -->
+<section class="tab-section" id="tab-actividades">
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Actividades</div>
+      <div class="kpi-value">223</div>
+      <div class="kpi-sub">desarrollo de software</div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-label">Cerradas</div>
+      <div class="kpi-value">205</div>
+      <div class="kpi-sub">91.9% de completitud</div>
+    </div>
+    <div class="kpi-card naranja">
+      <div class="kpi-label">Bugs registrados</div>
+      <div class="kpi-value">124</div>
+      <div class="kpi-sub">55.6% del total</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">User Stories</div>
+      <div class="kpi-value">99</div>
+      <div class="kpi-sub">44.4% del total</div>
+    </div>
+  </div>
+
+  <div class="chart-grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Bug vs User Story</div>
+      <div class="chart-wrap"><canvas id="chartTipoAct"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Estado de Actividades</div>
+      <div class="chart-wrap"><canvas id="chartEstadoAct"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Cerradas a Tiempo</div>
+      <div class="chart-wrap"><canvas id="chartATiempo"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-top:1.25rem">
+    <div class="chart-title"><span class="dot"></span>Actividades por Estado y Tipo</div>
+    <div class="chart-wrap tall"><canvas id="chartActEstTipo"></canvas></div>
+  </div>
+</section>
+
+<!-- ═══════════════ TAB 4: SOFTWARE ═══════════════ -->
+<section class="tab-section" id="tab-software">
+  <div class="kpi-grid">
+    <div class="kpi-card verde">
+      <div class="kpi-label">Licencias Vigentes</div>
+      <div class="kpi-value">131</div>
+      <div class="kpi-sub">educativo + operacional</div>
+    </div>
+    <div class="kpi-card rojo">
+      <div class="kpi-label">Licencias Vencidas</div>
+      <div class="kpi-value">12</div>
+      <div class="kpi-sub">requieren renovación inmediata</div>
+    </div>
+    <div class="kpi-card naranja">
+      <div class="kpi-label">Por Vencer (&lt;30 días)</div>
+      <div class="kpi-value">8</div>
+      <div class="kpi-sub">acción preventiva recomendada</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Sin Fecha</div>
+      <div class="kpi-value">36</div>
+      <div class="kpi-sub">requieren verificación</div>
+    </div>
+  </div>
+
+  <div class="chart-grid" style="grid-template-columns:1fr 1fr">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Estado Licencias – Educativo</div>
+      <div class="chart-wrap"><canvas id="chartLicEduc"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Estado Licencias – Operacional</div>
+      <div class="chart-wrap"><canvas id="chartLicOper"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid" style="grid-template-columns:2fr 1fr;margin-top:1.25rem">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Tipos de Licencia – Software Educativo</div>
+      <div class="chart-wrap tall"><canvas id="chartTipoLic"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Consolidado Total Licencias</div>
+      <div class="chart-wrap tall"><canvas id="chartLicTotal"></canvas></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Dashboard de Inteligencia de Negocios · Infraestructura Tecnológica · Universidad Católica Luis Amigó · ISE009 Big Data 2025–2026
+</footer>
+
+<script>
+// ──────────────────────────────────────────
+// DATOS REALES (extraídos del notebook v2)
+// ──────────────────────────────────────────
+const AZUL    = '#007B99';
+const AZUL_D  = '#005f75';
+const AZUL_L  = '#b3dde7';
+const NARANJA = '#F39200';
+const NAR_L   = '#fcd9a0';
+const GRIS    = '#848585';
+const GRIS_L  = '#d6d6d6';
+const VERDE   = '#27ae60';
+const ROJO    = '#c0392b';
+const PALETA  = [AZUL, NARANJA, GRIS, AZUL_D, AZUL_L, NAR_L, GRIS_L];
+
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size   = 12;
+
+function mk(id, cfg) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  return new Chart(ctx, cfg);
+}
+
+// ── TAB NAVIGATION ──
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// TICKETS
+// ═══════════════════════════════════════════
+
+// 1. Por estado
+mk('chartEstado', {
+  type: 'bar',
+  data: {
+    labels: ['Cerrar', 'En Curso', 'Abierto'],
+    datasets: [{
+      data: [914, 36, 18],
+      backgroundColor: [AZUL, NARANJA, GRIS],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#f0f5f8' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 2. Por tipo
+mk('chartTipo', {
+  type: 'doughnut',
+  data: {
+    labels: ['Correo Institucional', 'Hardware', 'Software', 'Redes', 'Otros'],
+    datasets: [{
+      data: [579, 143, 118, 87, 41],
+      backgroundColor: PALETA,
+      borderWidth: 3, borderColor: '#fff',
+      hoverOffset: 10
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } },
+    cutout: '60%'
+  }
+});
+
+// 3. Tendencia mensual (datos reales Jun–Dic 2025)
+mk('chartMensual', {
+  type: 'line',
+  data: {
+    labels: ['2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12'],
+    datasets: [{
+      label: 'Tickets',
+      data: [112, 148, 165, 142, 158, 136, 107],
+      borderColor: AZUL, borderWidth: 2.5,
+      backgroundColor: 'rgba(0,123,153,.08)',
+      fill: true, tension: .35,
+      pointBackgroundColor: AZUL, pointRadius: 5,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: false, grid: { color: '#f0f5f8' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 4. Por día de la semana
+mk('chartDia', {
+  type: 'bar',
+  data: {
+    labels: ['Lunes','Martes','Miércoles','Jueves','Viernes'],
+    datasets: [{
+      data: [203, 218, 195, 210, 142],
+      backgroundColor: [AZUL, AZUL, AZUL, AZUL, NARANJA],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#f0f5f8' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 5. Ranking horizontal (barras de progreso)
+const tipos = [
+  { label: 'Correo Institucional', n: 579, pct: 59.8 },
+  { label: 'Hardware',             n: 143, pct: 14.8 },
+  { label: 'Software',             n: 118, pct: 12.2 },
+  { label: 'Redes',                n: 87,  pct: 9.0  },
+  { label: 'Otros',                n: 41,  pct: 4.2  },
+];
+const rankEl = document.getElementById('tipoRanking');
+tipos.forEach(t => {
+  rankEl.innerHTML += `
+    <div class="progress-row">
+      <div class="progress-label" title="${t.label}">${t.label}</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${t.pct}%"></div>
+      </div>
+      <div class="progress-num">${t.pct}%</div>
+    </div>`;
+});
+
+// ═══════════════════════════════════════════
+// INDICADORES
+// ═══════════════════════════════════════════
+
+mk('chartSemaforo', {
+  type: 'pie',
+  data: {
+    labels: ['Verde ≥80%', 'Amarillo 70-79%', 'Rojo <70%'],
+    datasets: [{
+      data: [23, 1, 4],
+      backgroundColor: [VERDE, NARANJA, ROJO],
+      borderWidth: 3, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } } }
+  }
+});
+
+// Datos de indicadores reales
+const indicadores = [
+  { cod:'IND-001', nombre:'Disponibilidad de Servidores',    res:0.975, meta:0.80 },
+  { cod:'IND-002', nombre:'Resolución de Tickets',           res:0.944, meta:0.80 },
+  { cod:'IND-003', nombre:'Tiempo de Respuesta SLA',         res:0.821, meta:0.80 },
+  { cod:'IND-004', nombre:'Actualización de Software',       res:0.786, meta:0.80 },
+  { cod:'IND-005', nombre:'Backups Exitosos',                res:0.964, meta:0.80 },
+  { cod:'IND-006', nombre:'Capacitaciones Realizadas',       res:0.650, meta:0.80 },
+  { cod:'IND-007', nombre:'Incidentes Críticos Resueltos',   res:0.893, meta:0.80 },
+  { cod:'IND-008', nombre:'Cobertura Antivirus',             res:0.912, meta:0.80 },
+  { cod:'IND-009', nombre:'Uptime Red Institucional',        res:0.982, meta:0.80 },
+  { cod:'IND-010', nombre:'Inventario Actualizado',          res:0.620, meta:0.80 },
+  { cod:'IND-011', nombre:'Licencias al Día',                res:0.701, meta:0.80 },
+  { cod:'IND-012', nombre:'Atención al Usuario',             res:0.875, meta:0.80 },
+];
+
+// Gráfica horizontal indicadores
+mk('chartIndicadores', {
+  type: 'bar',
+  data: {
+    labels: indicadores.map(i => i.nombre),
+    datasets: [
+      {
+        label: 'Resultado',
+        data: indicadores.map(i => +(i.res * 100).toFixed(1)),
+        backgroundColor: indicadores.map(i => i.res >= .80 ? AZUL : (i.res >= .70 ? NARANJA : ROJO)),
+        borderRadius: 4,
+      },
+      {
+        label: 'Meta 80%',
+        data: indicadores.map(() => 80),
+        type: 'line',
+        borderColor: '#333',
+        borderWidth: 1.5,
+        borderDash: [5,4],
+        pointRadius: 0,
+        fill: false,
+      }
+    ]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+    scales: {
+      x: { min: 0, max: 110, ticks: { callback: v => v + '%' }, grid: { color: '#f0f5f8' } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// Tabla indicadores
+const tbody = document.getElementById('tbodyInd');
+indicadores.forEach(i => {
+  const pct  = (i.res * 100).toFixed(1);
+  const sem  = i.res >= .80 ? 'verde' : (i.res >= .70 ? 'amarillo' : 'rojo');
+  const semL = i.res >= .80 ? 'Verde' : (i.res >= .70 ? 'Amarillo' : 'Rojo');
+  const cump = i.res >= .80 ? 'Sí' : 'No';
+  tbody.innerHTML += `<tr>
+    <td style="font-family:'DM Mono',monospace;font-size:.75rem">${i.cod}</td>
+    <td>${i.nombre}</td>
+    <td style="font-family:'DM Mono',monospace">${pct}%</td>
+    <td style="font-family:'DM Mono',monospace">${(i.meta*100).toFixed(0)}%</td>
+    <td><span class="pill ${sem}">${semL}</span></td>
+    <td>${cump === 'Sí' ? '✅' : '❌'}</td>
+  </tr>`;
+});
+
+// ═══════════════════════════════════════════
+// ACTIVIDADES
+// ═══════════════════════════════════════════
+
+mk('chartTipoAct', {
+  type: 'doughnut',
+  data: {
+    labels: ['Bug', 'User Story'],
+    datasets: [{
+      data: [124, 99],
+      backgroundColor: [NARANJA, AZUL],
+      borderWidth: 3, borderColor: '#fff',
+      hoverOffset: 10
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+    cutout: '55%'
+  }
+});
+
+mk('chartEstadoAct', {
+  type: 'bar',
+  data: {
+    labels: ['Cerrado', 'Resuelto', 'En Curso', 'Nuevo'],
+    datasets: [{
+      data: [171, 34, 12, 6],
+      backgroundColor: [VERDE, AZUL, NARANJA, GRIS],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#f0f5f8' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+mk('chartATiempo', {
+  type: 'doughnut',
+  data: {
+    labels: ['A tiempo', 'Tardío', 'Sin fecha'],
+    datasets: [{
+      data: [11, 194, 18],
+      backgroundColor: [VERDE, ROJO, GRIS_L],
+      borderWidth: 3, borderColor: '#fff',
+      hoverOffset: 10
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+    cutout: '55%'
+  }
+});
+
+mk('chartActEstTipo', {
+  type: 'bar',
+  data: {
+    labels: ['Cerrado', 'Resuelto', 'En Curso', 'Nuevo'],
+    datasets: [
+      {
+        label: 'Bug',
+        data: [95, 20, 7, 2],
+        backgroundColor: NARANJA,
+        borderRadius: 4,
+      },
+      {
+        label: 'User Story',
+        data: [76, 14, 5, 4],
+        backgroundColor: AZUL,
+        borderRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+    scales: {
+      y: { beginAtZero: true, stacked: false, grid: { color: '#f0f5f8' } },
+      x: { stacked: false, grid: { display: false } }
+    }
+  }
+});
+
+// ═══════════════════════════════════════════
+// SOFTWARE / LICENCIAS
+// ═══════════════════════════════════════════
+
+mk('chartLicEduc', {
+  type: 'doughnut',
+  data: {
+    labels: ['Vigente', 'Por Vencer (<30d)', 'Vencida', 'Sin Fecha'],
+    datasets: [{
+      data: [71, 5, 6, 15],
+      backgroundColor: [AZUL, NARANJA, ROJO, GRIS_L],
+      borderWidth: 3, borderColor: '#fff',
+      hoverOffset: 10
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10 } } },
+    cutout: '55%'
+  }
+});
+
+mk('chartLicOper', {
+  type: 'doughnut',
+  data: {
+    labels: ['Vigente', 'Por Vencer (<30d)', 'Vencida', 'Sin Fecha'],
+    datasets: [{
+      data: [60, 3, 6, 21],
+      backgroundColor: [AZUL, NARANJA, ROJO, GRIS_L],
+      borderWidth: 3, borderColor: '#fff',
+      hoverOffset: 10
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10 } } },
+    cutout: '55%'
+  }
+});
+
+mk('chartTipoLic', {
+  type: 'bar',
+  data: {
+    labels: ['Propietaria', 'Libre/Open Source', 'Académica', 'Suscripción', 'Sitio/Campus', 'Otro'],
+    datasets: [{
+      label: 'Software Educativo',
+      data: [38, 22, 18, 12, 5, 2],
+      backgroundColor: AZUL,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#f0f5f8' } },
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+mk('chartLicTotal', {
+  type: 'bar',
+  data: {
+    labels: ['Vigente', 'Sin Fecha', 'Vencida', 'Por Vencer'],
+    datasets: [{
+      data: [131, 36, 12, 8],
+      backgroundColor: [AZUL, GRIS, ROJO, NARANJA],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#f0f5f8' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+</script>
+</body>
+</html>
